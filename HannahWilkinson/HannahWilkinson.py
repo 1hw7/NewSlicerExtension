@@ -127,15 +127,46 @@ class HannahWilkinsonWidget(ScriptedLoadableModuleWidget):
     self.applyButton.enabled = self.inputSelector.currentNode() and self.outputSelector.currentNode()
 
   def onApplyButton(self):
-    logic = HannahWilkinsonLogic()
-    enableScreenshotsFlag = self.enableScreenshotsFlagCheckBox.checked
-    imageThreshold = self.imageThresholdSliderWidget.value
-    logic.run(self.inputSelector.currentNode(), self.outputSelector.currentNode(), imageThreshold, enableScreenshotsFlag)
 
+    #logic = HannahWilkinsonLogic()
+    #enableScreenshotsFlag = self.enableScreenshotsFlagCheckBox.checked
+    #imageThreshold = self.imageThresholdSliderWidget.value
+    #logic.run(self.inputSelector.currentNode(), self.outputSelector.currentNode(), imageThreshold,
+              #enableScreenshotsFlag)
+
+    emTipTransform = self.emSelector.currentNode()
+    if emTipTransofrm== None:
+      return
+    opTipTransform= self.opticalSelector.currentNode()
+    if opTipTransform ==None:
+      return
+    emTipTransform.AddObserver(slicer.vtkMRMLTransformNode.TransformModifiedEvent, self.onTransformedModified)
+    opTipTransform.AddObserver(slicer.vtkMRMLTransformNode.TransformModifiedEvent, self.onTransformModified)
 #
 # HannahWilkinsonLogic
 #
+  def onTransformModified(self, caller, event):
+    print 'transforms modified'
+    emTipTransform = self.emSelector.currentNode()
+    if emTipTransform == None:
+      return
+    opTipTransform = self.opticalSelector.currentNode()
+    if opTipTransform == None:
+      return
 
+    emTip_EmTip= [0,0,0,1]
+    opTip_OpTip = [0,0,0,1]
+
+    emTipToRasMatrix=vtk.vtkMatrix4x4()
+    emTipTransform.GetMatrixTransformToWorld(emTipToRasMatrix)
+    emTip_Ras = numpy.array(emTipToRasMatrix.MultiplyFloatPoint(emTip_EmTip))
+
+    opTipToRasMatrix = vtk.vtkMatrix4x4()
+    opTipTransform.GetMatrixTransformToWorld(opTip_OpTip)
+    opTip_Ras = numpy.array(opTipToRasMatrix.MultiplyFloatPoint(opTip_OpTip))
+
+    distance =numpy.linalg.norm(emTip_Ras- opTip_Ras)
+    print distance
 class HannahWilkinsonLogic(ScriptedLoadableModuleLogic):
   """This class should implement all the actual
   computation done by your module.  The interface
@@ -145,6 +176,8 @@ class HannahWilkinsonLogic(ScriptedLoadableModuleLogic):
   Uses ScriptedLoadableModuleLogic base class, available at:
   https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
   """
+
+
 
   def hasImageData(self,volumeNode):
     """This is an example logic method that
@@ -340,13 +373,13 @@ class HannahWilkinsonTest(ScriptedLoadableModuleTest):
 
     TREdata = slicer.mrmlScene.AddNode(slicer.vtkMRMLDoubleArrayNode())
     TREarray = TREdata.GetArray()
-    TREarray.SetNumberOfTuples(9)
-    for i in range(1,10):
+    TREarray.SetNumberOfTuples(10)
+    for i in range(10):
       TREarray.SetComponent(i, 0, i*10)
 
 
     # Experiment parameters (start from here if you have alphaToBeta already)
-    for N in range(1,10):  # Number of fiducials
+    for N in range(10):  # Number of fiducials
       average,referenceToRasMatrix=self.distance(N,referenceToRas)
 
       createModelsLogic = slicer.modules.createmodels.logic()
