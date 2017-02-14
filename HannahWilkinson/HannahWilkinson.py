@@ -55,6 +55,7 @@ class HannahWilkinsonWidget(ScriptedLoadableModuleWidget):
     #
     # input volume selector
     #
+
     self.inputSelector = slicer.qMRMLNodeComboBox()
     self.inputSelector.nodeTypes = ["vtkMRMLScalarVolumeNode"]
     self.inputSelector.selectNodeUponCreation = True
@@ -109,10 +110,24 @@ class HannahWilkinsonWidget(ScriptedLoadableModuleWidget):
     self.applyButton.enabled = False
     parametersFormLayout.addRow(self.applyButton)
 
+    self.emSelector = slicer.qMRMLNodeComboBox()
+    self.emSelector.nodeTypes = ['vtkMRMLLinearTransformNode']
+    self.emSelector.setMRMLScene(slicer.mrmlScene)
+    parametersFormLayout.addRow("Em tool tip transform: ", self.emSelector)
+
+    self.opticalSelector = slicer.qMRMLNodeComboBox()
+    self.opticalSelector.nodeTypes = ['vtkMRMLLinearTransformNode']
+    self.opticalSelector.setMRMLScene(slicer.mrmlScene)
+    parametersFormLayout.addRow("Optical tool tip transform: ", self.opticalSelector)
+
     # connections
     self.applyButton.connect('clicked(bool)', self.onApplyButton)
+    '''
     self.inputSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSelect)
     self.outputSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSelect)
+    '''
+    self.emSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSelect)
+    self.opticalSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSelect)
 
     # Add vertical spacer
     self.layout.addStretch(1)
@@ -124,7 +139,8 @@ class HannahWilkinsonWidget(ScriptedLoadableModuleWidget):
     pass
 
   def onSelect(self):
-    self.applyButton.enabled = self.inputSelector.currentNode() and self.outputSelector.currentNode()
+    #self.applyButton.enabled = self.inputSelector.currentNode() and self.outputSelector.currentNode()
+    self.applyButton.enabled = self.emSelector.currentNode() and self.opticalSelector.currentNode()
 
   def onApplyButton(self):
 
@@ -133,14 +149,14 @@ class HannahWilkinsonWidget(ScriptedLoadableModuleWidget):
     #imageThreshold = self.imageThresholdSliderWidget.value
     #logic.run(self.inputSelector.currentNode(), self.outputSelector.currentNode(), imageThreshold,
               #enableScreenshotsFlag)
-
     emTipTransform = self.emSelector.currentNode()
-    if emTipTransofrm== None:
+    if emTipTransform == None:
       return
     opTipTransform= self.opticalSelector.currentNode()
-    if opTipTransform ==None:
+    if opTipTransform == None:
       return
-    emTipTransform.AddObserver(slicer.vtkMRMLTransformNode.TransformModifiedEvent, self.onTransformedModified)
+
+    emTipTransform.AddObserver(slicer.vtkMRMLTransformNode.TransformModifiedEvent, self.onTransformModified)
     opTipTransform.AddObserver(slicer.vtkMRMLTransformNode.TransformModifiedEvent, self.onTransformModified)
 #
 # HannahWilkinsonLogic
@@ -154,8 +170,8 @@ class HannahWilkinsonWidget(ScriptedLoadableModuleWidget):
     if opTipTransform == None:
       return
 
-    emTip_EmTip= [0,0,0,1]
-    opTip_OpTip = [0,0,0,1]
+    emTip_EmTip= [0, 0, 0, 1]
+    opTip_OpTip = [0, 0, 0, 1]
 
     emTipToRasMatrix=vtk.vtkMatrix4x4()
     emTipTransform.GetMatrixTransformToWorld(emTipToRasMatrix)
@@ -167,6 +183,7 @@ class HannahWilkinsonWidget(ScriptedLoadableModuleWidget):
 
     distance =numpy.linalg.norm(emTip_Ras- opTip_Ras)
     print distance
+
 class HannahWilkinsonLogic(ScriptedLoadableModuleLogic):
   """This class should implement all the actual
   computation done by your module.  The interface
